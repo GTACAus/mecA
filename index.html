@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mecA sequence</title>
+    <style>
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 10px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <pre id="sequence-container">
+>ENSB:T0HuNMmBJltEqn2 cds:protein_coding
+ATGAGAATAGAACGAGTAGATGATACAACTGTAAAATTGTTTATAACATATAGCGATATCGAGGCCCGTGGATTTAGTCGTGAAGATTTATGGACAAATCGCAAACGTGGCGAAGAATTCTTTTGGTCAATGATGGATGAAATTAACGAAGAAGAAGATTTTGTTGTAGAAGGTCCATTATGGATTCAAGTACATGCCTTTGAAAAAGGTGTCGAAGTCACAATTTCTAAATCTAAAAATGAAGATATGATGAATATGTCTGATGATGATGCAACTGATCAATTTGATGAACAAGTTCAAGAATTGTTAGCTCAAACATTAGAAGGTGAAGATCAATTAGAAGAATTATTCGAGCAACGAACAAAAGAAAAAGAAGCTCAAGGTTCTAAACGTCAAAAGTCTTCAGCACGTAAAAATACAAGAACAATCATTGTGAAATTTAACGATTTAGAAGATGTTATTAATTATGCATATCATAGCAATCCAATAACTACAGAGTTTGAAGATCTGTTATATATGGTTGACGGTACTTATTATTATGCTGTACATTTTGATAGTCATGTTGATCAAGAAGTCATTAATGATAGTTACAGTCAATTGCTTGAATTTGCTTATCCAACAGACAGAACAGAAGTTTATTTAAATGACTATGCTAAAATAATTATGAGTCATAACGTAACAGCTCAAGTTCGACGTTATTTTCCAGAGACAACTGAATAA
+    </pre>
+    <button onclick="copyText()">Copy Text</button>
+    <script>
+        const originalText = `
+ATGAGAATAGAACGAGTAGATGATACAACTGTAAAATTGTTTATAACATATAGCGATATCGAGGCCCGTGGATTTAGTCGTGAAGATTTATGGACAAATCGCAAACGTGGCGAAGAATTCTTTTGGTCAATGATGGATGAAATTAACGAAGAAGAAGATTTTGTTGTAGAAGGTCCATTATGGATTCAAGTACATGCCTTTGAAAAAGGTGTCGAAGTCACAATTTCTAAATCTAAAAATGAAGATATGATGAATATGTCTGATGATGATGCAACTGATCAATTTGATGAACAAGTTCAAGAATTGTTAGCTCAAACATTAGAAGGTGAAGATCAATTAGAAGAATTATTCGAGCAACGAACAAAAGAAAAAGAAGCTCAAGGTTCTAAACGTCAAAAGTCTTCAGCACGTAAAAATACAAGAACAATCATTGTGAAATTTAACGATTTAGAAGATGTTATTAATTATGCATATCATAGCAATCCAATAACTACAGAGTTTGAAGATCTGTTATATATGGTTGACGGTACTTATTATTATGCTGTACATTTTGATAGTCATGTTGATCAAGAAGTCATTAATGATAGTTACAGTCAATTGCTTGAATTTGCTTATCCAACAGACAGAACAGAAGTTTATTTAAATGACTATGCTAAAATAATTATGAGTCATAACGTAACAGCTCAAGTTCGACGTTATTTTCCAGAGACAACTGAATAA
+`;
+
+        function formatSequences() {
+            const container = document.getElementById('sequence-container');
+            const sequences = container.innerText.trim().split('\n');
+            let formattedText = '';
+            sequences.forEach(line => {
+                if (line.startsWith('>')) {
+                    formattedText += '\n' + line + '\n';
+                } else {
+                    formattedText += line + '\n';
+                }
+            });
+            container.innerText = formattedText.trim();
+        }
+
+        function copyText() {
+            navigator.clipboard.writeText(originalText.trim()).then(() => {
+                alert('Text copied to clipboard');
+            });
+        }
+
+        window.onload = formatSequences;
+    </script>
+</body>
+</html>
