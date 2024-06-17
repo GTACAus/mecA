@@ -120,37 +120,7 @@
                 <p class="big-blue-text">Identify alpha helices, beta-pleated sheets, and random coils in the Penicillin binding protein.</p>
             </div>
         </div>
-        <div class="card">
-            <div class="card-content">
-                <h2>Atomic Structure</h2>
-                <p>In the atomic structure model, every atom in each amino acid is shown. Carbon, Oxygen, Nitrogen, and Hydrogen are represented in this view.</p>
-                <div class="viewer-container">
-                    <div id="viewer2" class="viewer"></div>
-                    <button class="refresh-button" onclick="reloadViewer('viewer2', 1)">Reset model</button>
-                </div>
-                <p class="big-blue-text">Suggest which elements are represented by the green, blue, red, and yellow atoms.</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-content">
-                <h2>Space fill structure</h2>
-                <p>In this representation, the space taken up by each amino acid is represented by spheres. In addition, each amino acid is coloured by its hydrophobicity. Refer to the amino acid tuber models and determine which colours represent hydrophobic and hydrophilic amino acid residues.</p>
-                <div class="viewer-container">
-                    <div id="viewer3" class="viewer"></div>
-                    <button class="refresh-button" onclick="reloadViewer('viewer3', 2)">Reset model</button>
-                </div>
-                <p class="big-blue-text">Where are the hydrophilic and hydrophobic amino acids mainly located – inside or outside the protein? Why do you think that might occur?</p>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-content">
-                <h2>Active site GVEVTISKSKNEDM</h2>
-                <p>In the sequence table at the top of this page, click on each amino acid starting with the 70th and ending with the 84th. This will highlight amino acids in the active site of the penicillin binding protein. In non-resistant bacteria, this is where penicillin binds. It is also an important part of the protein in that it facilitates its role in cell wall production.</p>
-                <p class="big-blue-text">Where is the sequence located in the 3D structure? How might PBP function be affected if some of the amino acids are changed?</p>
-            </div>
-        </div>
-    </div>
-
+       
     <!-- Add the new content here -->
     <div class="container card">
         <div class="card-content">
@@ -178,6 +148,36 @@ ATGAGAATAGAACGAGTAGATGATACAACTGTAAAATTGTTTATAACATATAGCGATATCGAGGCCCGTGGATTTAGTCG
             <h2>Mutate the mecA gene</h2>
             <p>Paste the same sequence into the sequence box. Delete 1, 2 or 3 nucleotides and click/tap TRANSLATE! to generate a mutant primary structure.</p>
             <iframe src="https://web.expasy.org/translate" title="Expasy Translate Tool" width="100%" height="600px" style="border: none;"></iframe>
+        </div>
+    </div>
+ <div class="card">
+            <div class="card-content">
+                <h2>Atomic Structure</h2>
+                <p>In the atomic structure model, every atom in each amino acid is shown. Carbon, Oxygen, Nitrogen, and Hydrogen are represented in this view.</p>
+                <div class="viewer-container">
+                    <div id="viewer2" class="viewer"></div>
+                    <button class="refresh-button" onclick="reloadViewer('viewer2', 1)">Reset model</button>
+                </div>
+                <p class="big-blue-text">Suggest which elements are represented by the green, blue, red, and yellow atoms.</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-content">
+                <h2>Space fill structure</h2>
+                <p>In this representation, the space taken up by each amino acid is represented by spheres. In addition, each amino acid is coloured by its hydrophobicity. Refer to the amino acid tuber models and determine which colours represent hydrophobic and hydrophilic amino acid residues.</p>
+                <div class="viewer-container">
+                    <div id="viewer3" class="viewer"></div>
+                    <button class="refresh-button" onclick="reloadViewer('viewer3', 2)">Reset model</button>
+                </div>
+                <p class="big-blue-text">Where are the hydrophilic and hydrophobic amino acids mainly located – inside or outside the protein? Why do you think that might occur?</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-content">
+                <h2>Active site GVEVTISKSKNEDM</h2>
+                <p>In the sequence table at the top of this page, click on each amino acid starting with the 70th and ending with the 84th. This will highlight amino acids in the active site of the penicillin binding protein. In non-resistant bacteria, this is where penicillin binds. It is also an important part of the protein in that it facilitates its role in cell wall production.</p>
+                <p class="big-blue-text">Where is the sequence located in the 3D structure? How might PBP function be affected if some of the amino acids are changed?</p>
+            </div>
         </div>
     </div>
 
