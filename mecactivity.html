@@ -477,7 +477,7 @@ ATGAGAATAGAACGAGTAGATGATACAACTGTAAAATTGTTTATAACATATAGCGATATCGAGGCCCGTGGATTTAGTCG
                     if (foundStopCodon) {
                         restOfSequence += codonTable[codon];
                     } else {
-                        highlightedSequence += codonTable[codon];
+                        highlightedSequence += codonTable[codon]);
                         if (codonTable[codon] === '*') {
                             foundStopCodon = true;
                         }
