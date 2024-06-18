@@ -240,274 +240,276 @@ ATGAGAATAGAACGAGTAGATGATACAACTGTAAAATTGTTTATAACATATAGCGATATCGAGGCCCGTGGATTTAGTCG
     </div>
 
     <script>
-        const originalText = `
+    const originalText = `
 ATGAGAATAGAACGAGTAGATGATACAACTGTAAAATTGTTTATAACATATAGCGATATCGAGGCCCGTGGATTTAGTCGTGAAGATTTATGGACAAATCGCAAACGTGGCGAAGAATTCTTTTGGTCAATGATGGATGAAATTAACGAAGAAGAAGATTTTGTTGTAGAAGGTCCATTATGGATTCAAGTACATGCCTTTGAAAAAGGTGTCGAAGTCACAATTTCTAAATCTAAAAATGAAGATATGATGAATATGTCTGATGATGATGCAACTGATCAATTTGATGAACAAGTTCAAGAATTGTTAGCTCAAACATTAGAAGGTGAAGATCAATTAGAAGAATTATTCGAGCAACGAACAAAAGAAAAAGAAGCTCAAGGTTCTAAACGTCAAAAGTCTTCAGCACGTAAAAATACAAGAACAATCATTGTGAAATTTAACGATTTAGAAGATGTTATTAATTATGCATATCATAGCAATCCAATAACTACAGAGTTTGAAGATCTGTTATATATGGTTGACGGTACTTATTATTATGCTGTACATTTTGATAGTCATGTTGATCAAGAAGTCATTAATGATAGTTACAGTCAATTGCTTGAATTTGCTTATCCAACAGACAGAACAGAAGTTTATTTAAATGACTATGCTAAAATAATTATGAGTCATAACGTAACAGCTCAAGTTCGACGTTATTTTCCAGAGACAACTGAATAA
 `;
 
-        function formatSequences() {
-            const container = document.getElementById('sequence-container');
-            const sequences = container.innerText.trim().split('\n');
-            let formattedText = '';
-            sequences.forEach(line => {
-                if (line.startsWith('>')) {
-                    formattedText += '\n' + line + '\n';
-                } else {
-                    formattedText += line + '\n';
-                }
-            });
-            container.innerText = formattedText.trim();
-        }
-
-        function copyText() {
-            navigator.clipboard.writeText(originalText.trim()).then(() => {
-                alert('Text copied to clipboard');
-            });
-        }
-
-        window.onload = formatSequences;
-
-        let pdbUri = "https://alphafold.ebi.ac.uk/files/AF-P60185-F1-model_v4.pdb";
-        let sequence = "";
-
-        let viewer1, viewer2, viewer3;
-        let selectedResidues = new Set();
-        let originalStyles = [
-            { cartoon: { color: 'spectrum' } },
-            { stick: {} },
-            {
-                sphere: {
-                    colorfunc: function (atom) {
-                        let hydrophobic = new Set(['ALA', 'VAL', 'ILE', 'LEU', 'MET', 'PHE', 'TRP', 'PRO', 'GLY']);
-                        let hydrophilic = new Set(['ARG', 'LYS', 'ASP', 'GLU', 'ASN', 'GLN']);
-                        let neutral = new Set(['SER', 'THR', 'CYS', 'TYR', 'HIS']);
-                        if (hydrophobic.has(atom.resn)) return 'yellow';
-                        else if (hydrophilic.has(atom.resn)) return 'white';
-                        else if (neutral.has(atom.resn)) return 'gray';
-                        return 'green';  // fallback color
-                    }
-                }
-            }
-        ];
-
-        async function fetchPDBData(pdbUri) {
-            const response = await fetch(pdbUri);
-            const pdbText = await response.text();
-            const sequence = parseSequenceFromPDB(pdbText);
-            const title = parseTitleFromPDB(pdbText);
-            return { sequence, title };
-        }
-
-        function parseSequenceFromPDB(pdbText) {
-            const lines = pdbText.split('\n');
-            let residues = new Map();
-            for (const line of lines) {
-                if (line.startsWith('ATOM') || line.startsWith('HETATM')) {
-                    const resSeq = parseInt(line.substring(22, 26).trim());
-                    const resName = line.substring(17, 20).trim();
-                    if (!residues.has(resSeq)) {
-                        residues.set(resSeq, resName);
-                    }
-                }
-            }
-            const oneLetterMapping = {
-                'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
-                'GLU': 'E', 'GLN': 'Q', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
-                'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F', 'PRO': 'P',
-                'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V'
-            };
-            let sequence = '';
-            residues.forEach((resName) => {
-                sequence += oneLetterMapping[resName] || 'X'; // X for unknown
-            });
-            return sequence;
-        }
-
-        function parseTitleFromPDB(pdbText) {
-            const lines = pdbText.split('\n');
-            let title = "";
-            for (const line of lines) {
-                if (line.startsWith('TITLE')) {
-                    title += line.substring(10).trim() + " ";
-                }
-            }
-            return title.trim();
-        }
-
-        function createSequenceTable(sequence) {
-            const tableBody = document.getElementById('sequenceTable');
-            for (let i = 0; i < sequence.length; i += 50) {
-                let positionRow = document.createElement('tr');
-                let sequenceRow = document.createElement('tr');
-
-                for (let j = 0; j < 50; j++) {
-                    if (i + j >= sequence.length) break;
-
-                    if (j % 10 === 0) {
-                        let positionCell = document.createElement('td');
-                        positionCell.className = 'sequence-numbers';
-                        positionCell.textContent = i + j + 1;
-                        positionRow.appendChild(positionCell);
-                    } else {
-                        let emptyCell = document.createElement('td');
-                        positionRow.appendChild(emptyCell);
-                    }
-
-                    let sequenceCell = document.createElement('td');
-                    sequenceCell.textContent = sequence[i + j];
-                    sequenceCell.dataset.residueIndex = i + j + 1;
-                    sequenceCell.addEventListener('click', () => toggleResidueHighlight(sequenceCell));
-                    sequenceRow.appendChild(sequenceCell);
-                }
-
-                tableBody.appendChild(positionRow);
-                tableBody.appendChild(sequenceRow);
-            }
-        }
-
-        function toggleResidueHighlight(cell) {
-            const residueIndex = parseInt(cell.dataset.residueIndex);
-            if (selectedResidues.has(residueIndex)) {
-                selectedResidues.delete(residueIndex);
-                cell.classList.remove('highlight');
+    function formatSequences() {
+        const container = document.getElementById('sequence-container');
+        const sequences = container.innerText.trim().split('\n');
+        let formattedText = '';
+        sequences.forEach(line => {
+            if (line.startsWith('>')) {
+                formattedText += '\n' + line + '\n';
             } else {
-                selectedResidues.add(residueIndex);
-                cell.classList.add('highlight');
+                formattedText += line + '\n';
             }
-            updateResidueHighlighting();
+        });
+        container.innerText = formattedText.trim();
+    }
+
+    function copyText() {
+        navigator.clipboard.writeText(originalText.trim()).then(() => {
+            alert('Text copied to clipboard');
+        });
+    }
+
+    window.onload = formatSequences;
+
+    let pdbUri = "https://alphafold.ebi.ac.uk/files/AF-P60185-F1-model_v4.pdb";
+    let sequence = "";
+
+    let viewer1, viewer2, viewer3;
+    let selectedResidues = new Set();
+    let originalStyles = [
+        { cartoon: { color: 'spectrum' } },
+        { stick: {} },
+        {
+            sphere: {
+                colorfunc: function (atom) {
+                    let hydrophobic = new Set(['ALA', 'VAL', 'ILE', 'LEU', 'MET', 'PHE', 'TRP', 'PRO', 'GLY']);
+                    let hydrophilic = new Set(['ARG', 'LYS', 'ASP', 'GLU', 'ASN', 'GLN']);
+                    let neutral = new Set(['SER', 'THR', 'CYS', 'TYR', 'HIS']);
+                    if (hydrophobic.has(atom.resn)) return 'yellow';
+                    else if (hydrophilic.has(atom.resn)) return 'white';
+                    else if (neutral.has(atom.resn)) return 'gray';
+                    return 'green';  // fallback color
+                }
+            }
         }
+    ];
 
-        function updateResidueHighlighting() {
-            const highlightStyle = { stick: { color: 'lightgreen' }, sphere: { color: 'lightgreen' } };
-            const viewers = [viewer1, viewer2, viewer3];
+    async function fetchPDBData(pdbUri) {
+        const response = await fetch(pdbUri);
+        const pdbText = await response.text();
+        const sequence = parseSequenceFromPDB(pdbText);
+        const title = parseTitleFromPDB(pdbText);
+        return { sequence, title };
+    }
 
-            viewers.forEach((viewer, index) => {
-                viewer.setStyle({}, originalStyles[index]); // Reset all styles to original
+    function parseSequenceFromPDB(pdbText) {
+        const lines = pdbText.split('\n');
+        let residues = new Map();
+        for (const line of lines) {
+            if (line.startsWith('ATOM') || line.startsWith('HETATM')) {
+                const resSeq = parseInt(line.substring(22, 26).trim());
+                const resName = line.substring(17, 20).trim();
+                if (!residues.has(resSeq)) {
+                    residues.set(resSeq, resName);
+                }
+            }
+        }
+        const oneLetterMapping = {
+            'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
+            'GLU': 'E', 'GLN': 'Q', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
+            'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F', 'PRO': 'P',
+            'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V'
+        };
+        let sequence = '';
+        residues.forEach((resName) => {
+            sequence += oneLetterMapping[resName] || 'X'; // X for unknown
+        });
+        return sequence;
+    }
+
+    function parseTitleFromPDB(pdbText) {
+        const lines = pdbText.split('\n');
+        let title = "";
+        for (const line of lines) {
+            if (line.startsWith('TITLE')) {
+                title += line.substring(10).trim() + " ";
+            }
+        }
+        return title.trim();
+    }
+
+    function createSequenceTable(sequence) {
+        const tableBody = document.getElementById('sequenceTable');
+        for (let i = 0; i < sequence.length; i += 50) {
+            let positionRow = document.createElement('tr');
+            let sequenceRow = document.createElement('tr');
+
+            for (let j = 0; j < 50; j++) {
+                if (i + j >= sequence.length) break;
+
+                if (j % 10 === 0) {
+                    let positionCell = document.createElement('td');
+                    positionCell.className = 'sequence-numbers';
+                    positionCell.textContent = i + j + 1;
+                    positionRow.appendChild(positionCell);
+                } else {
+                    let emptyCell = document.createElement('td');
+                    positionRow.appendChild(emptyCell);
+                }
+
+                let sequenceCell = document.createElement('td');
+                sequenceCell.textContent = sequence[i + j];
+                sequenceCell.dataset.residueIndex = i + j + 1;
+                sequenceCell.addEventListener('click', () => toggleResidueHighlight(sequenceCell));
+                sequenceRow.appendChild(sequenceCell);
+            }
+
+            tableBody.appendChild(positionRow);
+            tableBody.appendChild(sequenceRow);
+        }
+    }
+
+    function toggleResidueHighlight(cell) {
+        const residueIndex = parseInt(cell.dataset.residueIndex);
+        if (selectedResidues.has(residueIndex)) {
+            selectedResidues.delete(residueIndex);
+            cell.classList.remove('highlight');
+        } else {
+            selectedResidues.add(residueIndex);
+            cell.classList.add('highlight');
+        }
+        updateResidueHighlighting();
+    }
+
+    function updateResidueHighlighting() {
+        const highlightStyle = { stick: { color: 'lightgreen' }, sphere: { color: 'lightgreen' } };
+        const viewers = [viewer1, viewer2, viewer3];
+
+        viewers.forEach((viewer, index) => {
+            viewer.setStyle({}, originalStyles[index]); // Reset all styles to original
+            selectedResidues.forEach(residueIndex => {
+                viewer.setStyle({ resi: residueIndex }, highlightStyle);
+            });
+            viewer.render();
+        });
+    }
+
+    function deselectAll() {
+        selectedResidues.clear();
+        document.querySelectorAll('.highlight').forEach(cell => cell.classList.remove('highlight'));
+        updateResidueHighlighting();
+    }
+
+    async function initialize() {
+        const { sequence, title } = await fetchPDBData(pdbUri);
+        document.getElementById('sequenceTitle').textContent = 'Sequence of ' + title;
+        createSequenceTable(sequence);
+
+        viewer1 = initializeViewer("viewer1", 0);
+        viewer2 = initializeViewer("viewer2", 1);
+        viewer3 = initializeViewer("viewer3", 2);
+    }
+
+    function initializeViewer(viewerElementId, styleIndex) {
+        let config = { backgroundColor: '0xffffff' };
+        let viewer = $3Dmol.createViewer(viewerElementId, config);
+
+        fetch(pdbUri)
+            .then(response => response.text())
+            .then(data => {
+                viewer.addModel(data, "pdb");
+                viewer.setStyle({}, originalStyles[styleIndex]);
+                viewer.zoomTo();
+                viewer.render();
+                // Apply highlighted residues
                 selectedResidues.forEach(residueIndex => {
-                    viewer.setStyle({ resi: residueIndex }, highlightStyle);
+                    viewer.setStyle({ resi: residueIndex }, { stick: { color: 'lightgreen' }, sphere: { color: 'lightgreen' } });
                 });
                 viewer.render();
-            });
-        }
+            })
+            .catch(error => console.error('Error fetching the PDB file:', error));
+        return viewer;
+    }
 
-        function deselectAll() {
-            selectedResidues.clear();
-            document.querySelectorAll('.highlight').forEach(cell => cell.classList.remove('highlight'));
-            updateResidueHighlighting();
-        }
+    function reloadViewer(viewerElementId, styleIndex) {
+        let viewer = $3Dmol.createViewer(viewerElementId, { backgroundColor: '0xffffff' });
+        fetch(pdbUri)
+            .then(response => response.text())
+            .then(data => {
+                viewer.addModel(data, "pdb");
+                viewer.setStyle({}, originalStyles[styleIndex]);
+                viewer.zoomTo();
+                viewer.render();
+                // Apply highlighted residues
+                selectedResidues.forEach(residueIndex => {
+                    viewer.setStyle({ resi: residueIndex }, { stick: { color: 'lightgreen' }, sphere: { color: 'lightgreen' } });
+                });
+                viewer.render();
+            })
+            .catch(error => console.error('Error fetching the PDB file:', error));
+    }
 
-        async function initialize() {
-            const { sequence, title } = await fetchPDBData(pdbUri);
-            document.getElementById('sequenceTitle').textContent = 'Sequence of ' + title;
-            createSequenceTable(sequence);
+    // DNA to Protein Translator function
+    const codonTable = {
+        'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L',
+        'CTT': 'L', 'CTC': 'L', 'CTA': 'L', 'CTG': 'L',
+        'ATT': 'I', 'ATC': 'I', 'ATA': 'I', 'ATG': 'M',
+        'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V',
+        'TCT': 'S', 'TCC': 'S', 'TCA': 'S', 'TCG': 'S',
+        'CCT': 'P', 'CCC': 'P', 'CCA': 'P', 'CCG': 'P',
+        'ACT': 'T', 'ACC': 'T', 'ACA': 'T', 'ACG': 'T',
+        'GCT': 'A', 'GCC': 'A', 'GCA': 'A', 'GCG': 'A',
+        'TAT': 'Y', 'TAC': 'Y', 'TAA': '*', 'TAG': '*',
+        'CAT': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
+        'AAT': 'N', 'AAC': 'N', 'AAA': 'K', 'AAG': 'K',
+        'GAT': 'D', 'GAC': 'D', 'GAA': 'E', 'GAG': 'E',
+        'TGT': 'C', 'TGC': 'C', 'TGA': '*', 'TGG': 'W',
+        'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R',
+        'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
+        'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G'
+    };
 
-            viewer1 = initializeViewer("viewer1", 0);
-            viewer2 = initializeViewer("viewer2", 1);
-            viewer3 = initializeViewer("viewer3", 2);
-        }
+    function translateDNA(inputId, outputId) {
+        const dnaSequence = document.getElementById(inputId).value.toUpperCase().replace(/[^ATCG]/g, '');
+        let proteinSequence = '';
+        let highlightedSequence = '';
+        let restOfSequence = '';
+        let foundStopCodon = false;
 
-        function initializeViewer(viewerElementId, styleIndex) {
-            let config = { backgroundColor: '0xffffff' };
-            let viewer = $3Dmol.createViewer(viewerElementId, config);
-
-            fetch(pdbUri)
-                .then(response => response.text())
-                .then(data => {
-                    viewer.addModel(data, "pdb");
-                    viewer.setStyle({}, originalStyles[styleIndex]);
-                    viewer.zoomTo();
-                    viewer.render();
-                    // Apply highlighted residues
-                    selectedResidues.forEach(residueIndex => {
-                        viewer.setStyle({ resi: residueIndex }, { stick: { color: 'lightgreen' }, sphere: { color: 'lightgreen' } });
-                    });
-                    viewer.render();
-                })
-                .catch(error => console.error('Error fetching the PDB file:', error));
-            return viewer;
-        }
-
-        function reloadViewer(viewerElementId, styleIndex) {
-            let viewer = $3Dmol.createViewer(viewerElementId, { backgroundColor: '0xffffff' });
-            fetch(pdbUri)
-                .then(response => response.text())
-                .then(data => {
-                    viewer.addModel(data, "pdb");
-                    viewer.setStyle({}, originalStyles[styleIndex]);
-                    viewer.zoomTo();
-                    viewer.render();
-                    // Apply highlighted residues
-                    selectedResidues.forEach(residueIndex => {
-                        viewer.setStyle({ resi: residueIndex }, { stick: { color: 'lightgreen' }, sphere: { color: 'lightgreen' } });
-                    });
-                    viewer.render();
-                })
-                .catch(error => console.error('Error fetching the PDB file:', error));
-        }
-
-        // DNA to Protein Translator function
-        const codonTable = {
-            'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L',
-            'CTT': 'L', 'CTC': 'L', 'CTA': 'L', 'CTG': 'L',
-            'ATT': 'I', 'ATC': 'I', 'ATA': 'I', 'ATG': 'M',
-            'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V',
-            'TCT': 'S', 'TCC': 'S', 'TCA': 'S', 'TCG': 'S',
-            'CCT': 'P', 'CCC': 'P', 'CCA': 'P', 'CCG': 'P',
-            'ACT': 'T', 'ACC': 'T', 'ACA': 'T', 'ACG': 'T',
-            'GCT': 'A', 'GCC': 'A', 'GCA': 'A', 'GCG': 'A',
-            'TAT': 'Y', 'TAC': 'Y', 'TAA': '*', 'TAG': '*',
-            'CAT': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
-            'AAT': 'N', 'AAC': 'N', 'AAA': 'K', 'AAG': 'K',
-            'GAT': 'D', 'GAC': 'D', 'GAA': 'E', 'GAG': 'E',
-            'TGT': 'C', 'TGC': 'C', 'TGA': '*', 'TGG': 'W',
-            'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R',
-            'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
-            'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G'
-        };
-
-        function translateDNA(inputId, outputId) {
-            const dnaSequence = document.getElementById(inputId).value.toUpperCase().replace(/[^ATCG]/g, '');
-            let proteinSequence = '';
-            let highlightedSequence = '';
-            let restOfSequence = '';
-            let foundStopCodon = false;
-
-            for (let i = 0; i < dnaSequence.length; i += 3) {
-                const codon = dnaSequence.substr(i, 3);
-                if (codonTable[codon]) {
-                    if (foundStopCodon) {
-                        restOfSequence += codonTable[codon];
-                    } else {
-                        highlightedSequence += codonTable[codon];
-                        if (codonTable[codon] === '*') {
-                            foundStopCodon = true;
-                        }
-                    }
+        for (let i = 0; i < dnaSequence.length; i += 3) {
+            const codon = dnaSequence.substr(i, 3);
+            if (codonTable[codon]) {
+                if (foundStopCodon) {
+                    restOfSequence += codonTable[codon];
                 } else {
-                    if (foundStopCodon) {
-                        restOfSequence += '?';
-                    } else {
-                        highlightedSequence += '?';
+                    if (codonTable[codon] === '*') {
+                        foundStopCodon = true;
+                        break;
                     }
+                    highlightedSequence += codonTable[codon];
+                }
+            } else {
+                if (foundStopCodon) {
+                    restOfSequence += '?';
+                } else {
+                    highlightedSequence += '?';
                 }
             }
-
-            const highlightedHtml = `<span class="highlight">${highlightedSequence}</span>`;
-            const restOfSequenceHtml = `<span>${restOfSequence}</span>`;
-            proteinSequence = highlightedHtml + restOfSequenceHtml;
-
-            document.getElementById(outputId).innerHTML = proteinSequence;
         }
 
-        function copyMutantText() {
-            const proteinSequenceDiv = document.getElementById('proteinSequence2');
-            const highlightedText = proteinSequenceDiv.querySelector('.highlight').innerText;
-            navigator.clipboard.writeText(highlightedText).then(() => {
-                alert('Highlighted text copied to clipboard');
-            });
-        }
+        const highlightedHtml = `<span class="highlight">${highlightedSequence}</span>`;
+        const restOfSequenceHtml = `<span>${restOfSequence}</span>`;
+        proteinSequence = highlightedHtml + restOfSequenceHtml;
 
-        initialize();
-    </script>
+        document.getElementById(outputId).innerHTML = proteinSequence;
+    }
+
+    function copyMutantText() {
+        const proteinSequenceDiv = document.getElementById('proteinSequence2');
+        const highlightedText = proteinSequenceDiv.querySelector('.highlight').innerText;
+        navigator.clipboard.writeText(highlightedText).then(() => {
+            alert('Highlighted text copied to clipboard');
+        });
+    }
+
+    initialize();
+</script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </body>
 </html>
