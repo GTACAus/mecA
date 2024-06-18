@@ -504,7 +504,7 @@
     }
 
     async function loadXMLData() {
-        const response = await fetch('data.xml');
+        const response = await fetch('http://gtacaus.github.io/mecA/data.xml');
         const xmlText = await response.text();
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
