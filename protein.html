@@ -7,7 +7,110 @@
     <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        body {
+            background-color: #fafafa;
+            font-family: 'Roboto', sans-serif;
+        }
+        .sequence-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .sequence-table th, .sequence-table td {
+            padding: 5px;
+            cursor: pointer;
+        }
+        .sequence-table th {
+            background-color: #f2f2f2;
+        }
+        .sequence-numbers {
+            color: #1e88e5;
+            font-weight: bold;
+        }
+        .highlight {
+            background-color: #a5d6a7;
+        }
+        .viewer-container {
+            position: relative;
+            margin-bottom: 20px;
+            display: inline-block;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .refresh-button, .deselect-button {
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .refresh-button:hover, .deselect-button:hover {
+            background-color: #1565c0;
+        }
+        .viewer {
+            height: 600px;
+            width: 600px;
+            position: relative;
+            background-color: white;
+        }
+        .card {
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .card-content {
+            padding: 20px;
+        }
+        h1 {
+            color: #424242;
+            font-size: 3.5em;
+        }
+        h2 {
+            color: #424242;
+            font-size: 2.5em;
+        }
+        p {
+            color: #757575;
+            font-size: 1.5em;
+        }
+        .big-blue-text {
+            font-size: 1.8em;
+            color: #1e88e5;
+        }
+        textarea {
+            width: 100%;
+            font-family: monospace;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        #proteinSequence {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            width: 100%;
+            height: 200px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .highlight {
+            color: green;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -132,7 +235,311 @@
         </div>
     </div>
 
-    <script src="js/script.js"></script>
+    <script>
+        let originalText = "";
+
+        function formatSequences() {
+            const container = document.getElementById('sequence-container');
+            const sequences = container.innerText.trim().split('\n');
+            let formattedText = '';
+            sequences.forEach(line => {
+                if (line.startsWith('>')) {
+                    formattedText += '\n' + line + '\n';
+                } else {
+                    formattedText += line + '\n';
+                }
+            });
+            container.innerText = formattedText.trim();
+        }
+
+        function copyText() {
+            navigator.clipboard.writeText(originalText.trim()).then(() => {
+                alert('Text copied to clipboard');
+            });
+        }
+
+        window.onload = formatSequences;
+
+        let pdbUri = "";
+        let sequence = "";
+
+        let viewer1, viewer2, viewer3;
+        let selectedResidues = new Set();
+        let originalStyles = [
+            { cartoon: { color: 'spectrum' } },
+            { stick: {} },
+            {
+                sphere: {
+                    colorfunc: function (atom) {
+                        let hydrophobic = new Set(['ALA', 'VAL', 'ILE', 'LEU', 'MET', 'PHE', 'TRP', 'PRO', 'GLY']);
+                        let hydrophilic = new Set(['ARG', 'LYS', 'ASP', 'GLU', 'ASN', 'GLN']);
+                        let neutral = new Set(['SER', 'THR', 'CYS', 'TYR', 'HIS']);
+                        if (hydrophobic.has(atom.resn)) return 'yellow';
+                        else if (hydrophilic.has(atom.resn)) return 'white';
+                        else if (neutral.has(atom.resn)) return 'gray';
+                        return 'green';  // fallback color
+                    }
+                }
+            }
+        ];
+
+        async function fetchPDBData(pdbUri) {
+            const response = await fetch(pdbUri);
+            const pdbText = await response.text();
+            const sequence = parseSequenceFromPDB(pdbText);
+            const title = parseTitleFromPDB(pdbText);
+            return { sequence, title };
+        }
+
+        function parseSequenceFromPDB(pdbText) {
+            const lines = pdbText.split('\n');
+            let residues = new Map();
+            for (const line of lines) {
+                if (line.startsWith('ATOM') || line.startsWith('HETATM')) {
+                    const resSeq = parseInt(line.substring(22, 26).trim());
+                    const resName = line.substring(17, 20).trim();
+                    if (!residues.has(resSeq)) {
+                        residues.set(resSeq, resName);
+                    }
+                }
+            }
+            const oneLetterMapping = {
+                'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
+                'GLU': 'E', 'GLN': 'Q', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
+                'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F', 'PRO': 'P',
+                'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V'
+            };
+            let sequence = '';
+            residues.forEach((resName) => {
+                sequence += oneLetterMapping[resName] || 'X'; // X for unknown
+            });
+            return sequence;
+        }
+
+        function parseTitleFromPDB(pdbText) {
+            const lines = pdbText.split('\n');
+            let title = "";
+            for (const line of lines) {
+                if (line.startsWith('TITLE')) {
+                    title += line.substring(10).trim() + " ";
+                }
+            }
+            return title.trim();
+        }
+
+        function createSequenceTable(sequence) {
+            const tableBody = document.getElementById('sequenceTable');
+            for (let i = 0; i < sequence.length; i += 50) {
+                let positionRow = document.createElement('tr');
+                let sequenceRow = document.createElement('tr');
+
+                for (let j = 0; j < 50; j++) {
+                    if (i + j >= sequence.length) break;
+
+                    if (j % 10 === 0) {
+                        let positionCell = document.createElement('td');
+                        positionCell.className = 'sequence-numbers';
+                        positionCell.textContent = i + j + 1;
+                        positionRow.appendChild(positionCell);
+                    } else {
+                        let emptyCell = document.createElement('td');
+                        positionRow.appendChild(emptyCell);
+                    }
+
+                    let sequenceCell = document.createElement('td');
+                    sequenceCell.textContent = sequence[i + j];
+                    sequenceCell.dataset.residueIndex = i + j + 1;
+                    sequenceCell.addEventListener('click', () => toggleResidueHighlight(sequenceCell));
+                    sequenceRow.appendChild(sequenceCell);
+                }
+
+                tableBody.appendChild(positionRow);
+                tableBody.appendChild(sequenceRow);
+            }
+        }
+
+        function toggleResidueHighlight(cell) {
+            const residueIndex = parseInt(cell.dataset.residueIndex);
+            if (selectedResidues.has(residueIndex)) {
+                selectedResidues.delete(residueIndex);
+                cell.classList.remove('highlight');
+            } else {
+                selectedResidues.add(residueIndex);
+                cell.classList.add('highlight');
+            }
+            updateResidueHighlighting();
+        }
+
+        function updateResidueHighlighting() {
+            const highlightStyle = { stick: { color: 'lightgreen' }, sphere: { color: 'lightgreen' } };
+            const viewers = [viewer1, viewer2, viewer3];
+
+            viewers.forEach((viewer, index) => {
+                viewer.setStyle({}, originalStyles[index]); // Reset all styles to original
+                selectedResidues.forEach(residueIndex => {
+                    viewer.setStyle({ resi: residueIndex }, highlightStyle);
+                });
+                viewer.render();
+            });
+        }
+
+        function deselectAll() {
+            selectedResidues.clear();
+            document.querySelectorAll('.highlight').forEach(cell => cell.classList.remove('highlight'));
+            updateResidueHighlighting();
+        }
+
+        async function initialize() {
+            await loadXMLData();
+            const { sequence, title } = await fetchPDBData(pdbUri);
+            document.getElementById('sequenceTitle').textContent = 'Sequence of ' + title;
+            createSequenceTable(sequence);
+
+            viewer1 = initializeViewer("viewer1", 0);
+            viewer2 = initializeViewer("viewer2", 1);
+            viewer3 = initializeViewer("viewer3", 2);
+        }
+
+        function initializeViewer(viewerElementId, styleIndex) {
+            let config = { backgroundColor: '0xffffff' };
+            let viewer = $3Dmol.createViewer(viewerElementId, config);
+
+            fetch(pdbUri)
+                .then(response => response.text())
+                .then(data => {
+                    viewer.addModel(data, "pdb");
+                    viewer.setStyle({}, originalStyles[styleIndex]);
+                    viewer.zoomTo();
+                    viewer.render();
+                    // Apply highlighted residues
+                    selectedResidues.forEach(residueIndex => {
+                        viewer.setStyle({ resi: residueIndex }, { stick: { color: 'lightgreen' }, sphere: { color: 'lightgreen' } });
+                    });
+                    viewer.render();
+                })
+                .catch(error => console.error('Error fetching the PDB file:', error));
+            return viewer;
+        }
+
+        function reloadViewer(viewerElementId, styleIndex) {
+            let viewer = $3Dmol.createViewer(viewerElementId, { backgroundColor: '0xffffff' });
+            fetch(pdbUri)
+                .then(response => response.text())
+                .then(data => {
+                    viewer.addModel(data, "pdb");
+                    viewer.setStyle({}, originalStyles[styleIndex]);
+                    viewer.zoomTo();
+                    viewer.render();
+                    // Apply highlighted residues
+                    selectedResidues.forEach(residueIndex => {
+                        viewer.setStyle({ resi: residueIndex }, { stick: { color: 'lightgreen' }, sphere: { color: 'lightgreen' } });
+                    });
+                    viewer.render();
+                })
+                .catch(error => console.error('Error fetching the PDB file:', error));
+        }
+
+        // DNA to Protein Translator function
+        const codonTable = {
+            'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L',
+            'CTT': 'L', 'CTC': 'L', 'CTA': 'L', 'CTG': 'L',
+            'ATT': 'I', 'ATC': 'I', 'ATA': 'I', 'ATG': 'M',
+            'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V',
+            'TCT': 'S', 'TCC': 'S', 'TCA': 'S', 'TCG': 'S',
+            'CCT': 'P', 'CCC': 'P', 'CCA': 'P', 'CCG': 'P',
+            'ACT': 'T', 'ACC': 'T', 'ACA': 'T', 'ACG': 'T',
+            'GCT': 'A', 'GCC': 'A', 'GCA': 'A', 'GCG': 'A',
+            'TAT': 'Y', 'TAC': 'Y', 'TAA': '*', 'TAG': '*',
+            'CAT': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
+            'AAT': 'N', 'AAC': 'N', 'AAA': 'K', 'AAG': 'K',
+            'GAT': 'D', 'GAC': 'D', 'GAA': 'E', 'GAG': 'E',
+            'TGT': 'C', 'TGC': 'C', 'TGA': '*', 'TGG': 'W',
+            'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R',
+            'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
+            'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G'
+        };
+
+        function translateDNA(inputId, outputId) {
+            const dnaSequence = document.getElementById(inputId).value.toUpperCase().replace(/[^ATCG]/g, '');
+            let proteinSequence = '';
+            let highlightedSequence = '';
+            let restOfSequence = '';
+            let foundStopCodon = false;
+
+            for (let i = 0; i < dnaSequence.length; i += 3) {
+                const codon = dnaSequence.substr(i, 3);
+                if (codonTable[codon]) {
+                    if (foundStopCodon) {
+                        restOfSequence += codonTable[codon];
+                    } else {
+                        if (codonTable[codon] === '*') {
+                            foundStopCodon = true;
+                            break;
+                        }
+                        highlightedSequence += codonTable[codon];
+                    }
+                } else {
+                    if (foundStopCodon) {
+                        restOfSequence += '?';
+                    } else {
+                        highlightedSequence += '?';
+                    }
+                }
+            }
+
+            const highlightedHtml = `<span class="highlight">${highlightedSequence}</span>`;
+            const restOfSequenceHtml = `<span>${restOfSequence}</span>`;
+            proteinSequence = highlightedHtml + restOfSequenceHtml;
+
+            document.getElementById(outputId).innerHTML = proteinSequence;
+        }
+
+        function copyMutantText() {
+            const proteinSequenceDiv = document.getElementById('proteinSequence2');
+            const highlightedText = proteinSequenceDiv.querySelector('.highlight').innerText;
+            navigator.clipboard.writeText(highlightedText).then(() => {
+                alert('Highlighted text copied to clipboard');
+            });
+        }
+
+        async function loadXMLData() {
+            const response = await fetch('data.xml');
+            const xmlText = await response.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+
+            const proteinName = xmlDoc.getElementsByTagName('proteinName')[0].textContent;
+            const geneName = xmlDoc.getElementsByTagName('geneName')[0].textContent;
+            const geneSeq = xmlDoc.getElementsByTagName('geneSeq')[0].textContent;
+            const activeSite = xmlDoc.getElementsByTagName('activeSite')[0].textContent;
+            const activeSiteText = xmlDoc.getElementsByTagName('activeSiteText')[0].textContent;
+            const proteinFunction = xmlDoc.getElementsByTagName('proteinFunction')[0].textContent;
+            const substrateOrDrug = xmlDoc.getElementsByTagName('substrateOrDrug')[0].textContent;
+            pdbUri = xmlDoc.getElementsByTagName('PDBurl')[0].textContent;
+
+            document.getElementById('proteinName').textContent = proteinName;
+            document.getElementById('fileName').textContent = proteinName;
+            document.getElementById('proteinName1').textContent = proteinName;
+            document.getElementById('proteinName2').textContent = proteinName;
+            document.getElementById('proteinName3').textContent = proteinName;
+            document.getElementById('proteinName4').textContent = proteinName;
+            document.getElementById('proteinName5').textContent = proteinName;
+            document.getElementById('geneName1').textContent = geneName;
+            document.getElementById('geneName2').textContent = geneName;
+            document.getElementById('geneName3').textContent = geneName;
+            document.getElementById('geneName4').textContent = geneName;
+            document.getElementById('geneName5').textContent = geneName;
+            document.getElementById('activeSite').textContent = activeSite;
+            document.getElementById('activeSiteText').textContent = activeSiteText;
+            document.getElementById('proteinFunction').textContent = proteinFunction;
+            document.getElementById('substrateOrDrug').textContent = substrateOrDrug;
+
+            originalText = geneSeq;
+            document.getElementById('sequence-container').textContent = `>${geneName}\n${geneSeq}`;
+        }
+
+        initialize();
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </body>
 </html>
